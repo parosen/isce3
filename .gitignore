@@ -4,3 +4,4 @@ extensions/isce/core/export/
 *.swp
 build*/
 *.rpm
+.DS_Store
