@@ -102,7 +102,7 @@ class RawBase(Base, family='nisar.productreader.raw'):
         return DataDecoder(fid[path])
 
     def getRawDatasetFromBinary(self, frequency, polarization, binary_path, 
-                                 byte_order='native'):
+                                 byte_order='native', binary_dtype=None):
         '''
         Return raw dataset from flat binary file, using HDF5 only for metadata.
         
@@ -122,6 +122,11 @@ class RawBase(Base, family='nisar.productreader.raw'):
         byte_order : str, optional
             Byte order of the binary file: 'native', 'little', or 'big'.
             Default is 'native'.
+        binary_dtype : numpy.dtype or str, optional
+            Data type in the binary file. If None, uses the dtype from HDF5.
+            Use this when the binary file has a different format than the HDF5
+            (e.g., HDF5 has BFPQ integers but binary has complex64 floats).
+            Can be numpy dtype or string like 'complex64', 'complex32'.
         
         Returns
         -------
@@ -142,15 +147,22 @@ class RawBase(Base, family='nisar.productreader.raw'):
                 from isce3.core.types import complex32
                 dtype_storage = complex32
             
-            # Get BFPQ lookup table if present
+            # Get BFPQ lookup table if present in HDF5
             group = h5_dataset.parent
             lut_table = None
             if "BFPQLUT" in group:
                 lut_table = np.asarray(group["BFPQLUT"])
-                log.info(f"Found BFPQLUT for decoding binary data from {binary_path}")
+                log.info(f"Found BFPQLUT in HDF5 metadata")
+        
+        # Override dtype if binary file has different format than HDF5
+        if binary_dtype is not None:
+            dtype_storage = np.dtype(binary_dtype)
+            # If user specifies binary dtype, assume data is already decoded
+            lut_table = None
+            log.info(f"Using binary file dtype: {dtype_storage} (overriding HDF5 dtype)")
         
         log.info(f"Reading raw data from binary file: {binary_path}")
-        log.info(f"Using metadata from HDF5: shape={shape}, dtype={dtype_storage}")
+        log.info(f"Binary file format: shape={shape}, dtype={dtype_storage}")
         
         return BinaryDataDecoder(binary_path, shape, dtype_storage, 
                                  lut_table, byte_order)

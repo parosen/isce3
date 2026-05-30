@@ -2040,8 +2040,9 @@ def focus(runconfig, runconfig_path=""):
             if binary_path is not None:
                 log.info(f"Using flat binary file for raw data: {binary_path}")
                 byte_order = getattr(cfg.input_file_group, 'binary_byte_order', 'native')
+                binary_dtype = getattr(cfg.input_file_group, 'binary_dtype', None)
                 rawdata = raw.getRawDatasetFromBinary(channel_in.freq_id, pol, 
-                                                      binary_path, byte_order)
+                                                      binary_path, byte_order, binary_dtype)
             else:
                 rawdata = raw.getRawDataset(channel_in.freq_id, pol)
             

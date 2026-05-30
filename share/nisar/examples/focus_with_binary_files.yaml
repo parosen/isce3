@@ -37,6 +37,14 @@ runconfig:
             # Default: 'native'
             binary_byte_order: native
 
+            # OPTIONAL: Data type in binary files
+            # Use this when binary file format differs from HDF5 storage format
+            # For example, if HDF5 contains BFPQ integers but binary files contain
+            # already-decoded complex64 floats, set this to 'complex64'
+            # Options: 'complex64', 'complex32', or any numpy dtype string
+            # Default: None (use dtype from HDF5)
+            binary_dtype: complex64
+
         # All other configuration sections remain the same as standard focus.yaml
         dynamic_ancillary_file_group:
             dem_file: null

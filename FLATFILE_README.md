@@ -68,15 +68,22 @@ runconfig:
 
             # Byte order (optional, default: 'native')
             binary_byte_order: native  # or 'little' or 'big'
+            
+            # Binary data type (optional, default: use HDF5 dtype)
+            # Use this when binary file format differs from HDF5 storage
+            # For example, if HDF5 has BFPQ integers but binary has decoded floats
+            binary_dtype: complex64  # or 'complex32', or any numpy dtype
 ```
 
 ## Binary File Format
 
 Binary files must:
 1. Match the shape specified in the HDF5 metadata
-2. Use the same dtype as indicated in HDF5 (complex64, complex32, or BFPQ compound type)
-3. Be in row-major (C) order
-4. Have the correct byte order (specified in config)
+2. Be in row-major (C) order
+3. Have the correct byte order (specified in config)
+4. Use a supported data type:
+   - **Same as HDF5**: If `binary_dtype` is not specified, the binary file must use the same format as HDF5 (complex64, complex32, or BFPQ compound type with matching lookup table)
+   - **Override with `binary_dtype`**: If the binary file has a different format than HDF5 (e.g., HDF5 has BFPQ integers but binary has already-decoded complex64 floats), specify `binary_dtype: complex64` in the config
 
 ### Example: Creating a Binary File
 
