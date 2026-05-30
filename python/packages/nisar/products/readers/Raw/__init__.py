@@ -10,3 +10,4 @@ from .Raw import (
     range_delay_sequential_tx_from_raw
 )
 from .DataDecoder import complex32, DataDecoder
+from .BinaryDataDecoder import BinaryDataDecoder

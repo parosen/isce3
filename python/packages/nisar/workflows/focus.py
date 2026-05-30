@@ -2023,7 +2023,28 @@ def focus(runconfig, runconfig_path=""):
 
             # NOTE In some cases frequency != channel_in.freq_id, for example
             # 80 MHz (A) being mixed with 5 MHz sideband (B).
-            rawdata = raw.getRawDataset(channel_in.freq_id, pol)
+            
+            # Check if binary file path is configured for this frequency/polarization
+            binary_path = None
+            if hasattr(cfg.input_file_group, 'binary_data_files'):
+                binary_files = cfg.input_file_group.binary_data_files
+                if binary_files is not None:
+                    # Support dict structure: {frequencyA: {HH: path, HV: path}, frequencyB: {...}}
+                    freq_key = f"frequency{channel_in.freq_id}"
+                    if hasattr(binary_files, freq_key):
+                        freq_dict = getattr(binary_files, freq_key)
+                        if hasattr(freq_dict, pol):
+                            binary_path = getattr(freq_dict, pol)
+            
+            # Use binary file if configured, otherwise use HDF5
+            if binary_path is not None:
+                log.info(f"Using flat binary file for raw data: {binary_path}")
+                byte_order = getattr(cfg.input_file_group, 'binary_byte_order', 'native')
+                rawdata = raw.getRawDatasetFromBinary(channel_in.freq_id, pol, 
+                                                      binary_path, byte_order)
+            else:
+                rawdata = raw.getRawDataset(channel_in.freq_id, pol)
+            
             log.info(f"Raw data shape = {rawdata.shape}")
             if rawdata.ndim != 2:
                 raise ValueError("Expected 2D raw data.  For diagnostic mode "

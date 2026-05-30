@@ -1,5 +1,6 @@
 from __future__ import annotations
 from .DataDecoder import DataDecoder
+from .BinaryDataDecoder import BinaryDataDecoder
 import h5py
 import isce3
 from isce3.focus import RadarPoint, RadarBoundingBox
@@ -99,6 +100,60 @@ class RawBase(Base, family='nisar.productreader.raw'):
         fid = h5py.File(self.filename, 'r', libver='latest', swmr=True)
         path = self.rawPath(frequency, polarization)
         return DataDecoder(fid[path])
+
+    def getRawDatasetFromBinary(self, frequency, polarization, binary_path, 
+                                 byte_order='native'):
+        '''
+        Return raw dataset from flat binary file, using HDF5 only for metadata.
+        
+        This method reads raster data from an external flat binary file while
+        extracting all metadata (shape, dtype, lookup tables, etc.) from the
+        HDF5 file. This is useful for workflows where raw data is stored 
+        separately from metadata.
+        
+        Parameters
+        ----------
+        frequency : str
+            Frequency band ('A' or 'B')
+        polarization : str
+            Polarization string (e.g., 'HH', 'HV', 'VV', 'VH')
+        binary_path : str
+            Path to the flat binary file containing the raw data
+        byte_order : str, optional
+            Byte order of the binary file: 'native', 'little', or 'big'.
+            Default is 'native'.
+        
+        Returns
+        -------
+        BinaryDataDecoder
+            Decoder object that reads from binary file but uses HDF5 metadata
+        '''
+        # Read metadata from HDF5
+        with h5py.File(self.filename, 'r', libver='latest', swmr=True) as fid:
+            path = self.rawPath(frequency, polarization)
+            h5_dataset = fid[path]
+            shape = h5_dataset.shape
+            
+            # Get dtype - handle complex32 special case
+            try:
+                dtype_storage = h5_dataset.dtype
+            except TypeError:
+                # h5py < 3.8.0 raises TypeError for complex32
+                from isce3.core.types import complex32
+                dtype_storage = complex32
+            
+            # Get BFPQ lookup table if present
+            group = h5_dataset.parent
+            lut_table = None
+            if "BFPQLUT" in group:
+                lut_table = np.asarray(group["BFPQLUT"])
+                log.info(f"Found BFPQLUT for decoding binary data from {binary_path}")
+        
+        log.info(f"Reading raw data from binary file: {binary_path}")
+        log.info(f"Using metadata from HDF5: shape={shape}, dtype={dtype_storage}")
+        
+        return BinaryDataDecoder(binary_path, shape, dtype_storage, 
+                                 lut_table, byte_order)
 
     def getChirp(self, frequency: str = 'A', tx: str = 'H'):
         """Return analytic chirp for a given band/transmit.

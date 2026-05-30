@@ -1,0 +1,54 @@
+# Example runconfig for focus.py using flat binary files for raw data
+# while reading metadata from HDF5
+#
+# This configuration demonstrates how to use external flat binary files
+# for raster data instead of reading from HDF5, which can be useful for:
+# - Working with data stored in different formats
+# - Testing with synthetic data
+# - Interfacing with external processing systems
+#
+# The HDF5 file is still required for all metadata including:
+# - Chirp parameters
+# - Orbit/attitude data
+# - Radar grid parameters
+# - Calibration data
+# - All other metadata
+
+runconfig:
+    groups:
+        input_file_group:
+            # REQUIRED: List of NISAR L0B HDF5 files (used for metadata only)
+            input_file_path:
+            - /path/to/L0B_file.h5
+
+            # OPTIONAL: Flat binary files containing raw data
+            # If not specified, raw data will be read from HDF5 as usual
+            # Structure: frequencyA/frequencyB -> polarization -> file path
+            binary_data_files:
+                frequencyA:
+                    HH: /path/to/raw_data_A_HH.bin
+                    HV: /path/to/raw_data_A_HV.bin
+                frequencyB:
+                    VV: /path/to/raw_data_B_VV.bin
+                    VH: /path/to/raw_data_B_VH.bin
+
+            # OPTIONAL: Byte order of binary files
+            # Options: 'native', 'little', 'big'
+            # Default: 'native'
+            binary_byte_order: native
+
+        # All other configuration sections remain the same as standard focus.yaml
+        dynamic_ancillary_file_group:
+            dem_file: null
+            orbit: null
+            pointing: null
+            external_calibration: null
+            internal_calibration: null
+            antenna_pattern: null
+
+        product_path_group:
+            product_path: /out
+            scratch_path: .
+            sas_output_file: ./slc.h5
+
+        # ... rest of configuration follows standard focus.yaml format
