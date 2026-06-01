@@ -134,35 +134,56 @@ class RawBase(Base, family='nisar.productreader.raw'):
             Decoder object that reads from binary file but uses HDF5 metadata
         '''
         # Read metadata from HDF5
+        log.info("="*80)
+        log.info(f"getRawDatasetFromBinary called for frequency={frequency}, polarization={polarization}")
+        log.info(f"HDF5 file: {self.filename}")
+        
         with h5py.File(self.filename, 'r', libver='latest', swmr=True) as fid:
             path = self.rawPath(frequency, polarization)
+            log.info(f"HDF5 dataset path (NOT being read for raster data): {path}")
+            log.info(f"  -> This path would normally be used to read raw data from HDF5")
+            log.info(f"  -> Instead, reading from binary file: {binary_path}")
+            
             h5_dataset = fid[path]
             shape = h5_dataset.shape
+            h5_dtype = None
             
             # Get dtype - handle complex32 special case
             try:
                 dtype_storage = h5_dataset.dtype
+                h5_dtype = dtype_storage
             except TypeError:
                 # h5py < 3.8.0 raises TypeError for complex32
                 from isce3.core.types import complex32
                 dtype_storage = complex32
+                h5_dtype = complex32
+            
+            log.info(f"Metadata from HDF5 dataset {path}:")
+            log.info(f"  -> Shape: {shape}")
+            log.info(f"  -> HDF5 storage dtype: {h5_dtype}")
             
             # Get BFPQ lookup table if present in HDF5
             group = h5_dataset.parent
             lut_table = None
             if "BFPQLUT" in group:
                 lut_table = np.asarray(group["BFPQLUT"])
-                log.info(f"Found BFPQLUT in HDF5 metadata")
+                log.info(f"  -> Found BFPQLUT in HDF5 (length={len(lut_table)})")
         
         # Override dtype if binary file has different format than HDF5
         if binary_dtype is not None:
+            log.info(f"Binary file dtype override: {binary_dtype} (HDF5 has {h5_dtype})")
             dtype_storage = np.dtype(binary_dtype)
             # If user specifies binary dtype, assume data is already decoded
+            if lut_table is not None:
+                log.info(f"  -> Ignoring BFPQ lookup table since binary_dtype was specified")
             lut_table = None
-            log.info(f"Using binary file dtype: {dtype_storage} (overriding HDF5 dtype)")
         
-        log.info(f"Reading raw data from binary file: {binary_path}")
-        log.info(f"Binary file format: shape={shape}, dtype={dtype_storage}")
+        log.info(f"Creating BinaryDataDecoder with:")
+        log.info(f"  -> Binary file: {binary_path}")
+        log.info(f"  -> Shape: {shape}")
+        log.info(f"  -> Dtype: {dtype_storage}")
+        log.info(f"  -> Byte order: {byte_order}")
+        log.info("="*80)
         
         return BinaryDataDecoder(binary_path, shape, dtype_storage, 
                                  lut_table, byte_order)

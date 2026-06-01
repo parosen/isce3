@@ -33,6 +33,15 @@ class BinaryDataDecoder(object):
         self.dtype = np.dtype('c8')  # Output is always complex64
         self.dtype_storage = dtype_storage
         self.table = lut_table
+        self.read_count = 0  # Track number of reads from binary file
+        
+        log.info("="*80)
+        log.info("BINARY FILE MODE: Using BinaryDataDecoder instead of HDF5 DataDecoder")
+        log.info(f"Binary file path: {binary_path}")
+        log.info(f"Data shape from HDF5 metadata: {shape}")
+        log.info(f"Storage dtype: {dtype_storage}")
+        log.info(f"Byte order: {byte_order}")
+        log.info("="*80)
         
         # Adjust dtype for byte order if needed
         if byte_order == 'little':
@@ -65,7 +74,22 @@ class BinaryDataDecoder(object):
     
     def __getitem__(self, key):
         """Return decoded data for the given slice/index."""
-        return self.decoder(key)
+        self.read_count += 1
+        
+        # Log first few reads and periodic updates to show binary file is being used
+        if self.read_count <= 5 or self.read_count % 100 == 0:
+            log.info(f"BinaryDataDecoder read #{self.read_count}: Reading slice {key} from binary file")
+            if self.read_count == 1:
+                log.info(f"  -> First read from binary file: {self.binary_path}")
+        
+        result = self.decoder(key)
+        
+        # Log details of first read
+        if self.read_count == 1:
+            log.info(f"  -> Read result shape: {result.shape}, dtype: {result.dtype}")
+            log.info(f"  -> Sample values: min={np.min(np.abs(result)):.6e}, max={np.max(np.abs(result)):.6e}, mean={np.mean(np.abs(result)):.6e}")
+        
+        return result
     
     def _decode_lut(self, key):
         """Decode BFPQ data using lookup table."""
