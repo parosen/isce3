@@ -4,11 +4,12 @@
 #include <complex>
 #include <gdal_priv.h>
 #include <type_traits>
+#include <thrust/complex.h>
 
 // forward declare thrust::complex
-namespace thrust {
-    template<typename> struct complex;
-}
+//namespace thrust {
+//    template<typename> struct complex;
+//}
 
 namespace isce3 { namespace io { namespace gdal { namespace detail {
 
