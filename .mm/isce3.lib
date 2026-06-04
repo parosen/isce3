@@ -31,8 +31,16 @@ isce3.lib.autogen := \
   @ISCE3_WITH_CUDA_BOOL@|$(isce3.cuda)
 
 # use c++17 for both host and device code
-isce3.lib.c++.flags += $($(compiler.c++).std.c++17)
+isce3.lib.c++.flags += $($(compiler.c++).std.c++17) -fopenmp
 isce3.lib.cuda.flags += $($(compiler.cuda).std.c++17) --expt-relaxed-constexpr --extended-lambda
+
+# after https://github.com/NVIDIA/cccl/pull/443, thrust creates an architecture specific
+# inline namespace for all its symbols. #1756 added these symbols to suppress this.
+# see the comments in cxx/isce3/cuda/CMakeLists.txt
+# IMO, this should be considered a temporary fix, as thrust is likely to evolve to lean on
+# this namespace
+isce3.lib.c++.defines += THRUST_DISABLE_ABI_NAMESPACE THRUST_IGNORE_ABI_NAMESPACE_ERROR
+isce3.lib.cuda.defines += THRUST_DISABLE_ABI_NAMESPACE THRUST_IGNORE_ABI_NAMESPACE_ERROR
 
 
 # end of file
